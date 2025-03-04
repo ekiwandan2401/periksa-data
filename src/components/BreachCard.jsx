@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { motion, useAnimation } from 'framer-motion';
 import { 
   Card, 
   CardContent, 
@@ -17,22 +18,48 @@ import { useRouter } from 'next/navigation';
 export default function BreachCard({ breach }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const cardRef = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const controls = useAnimation();
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseEnter = () => controls.start({ opacity: 1 });
+  const handleMouseLeave = () => controls.start({ opacity: 0 });
 
   const handleLearnMore = (e) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Extract breach name from link or use the breach.name
     const breachName = breach.name || 
                       (breach.link ? breach.link.split('/').pop() : '');
     
-    // Navigate to the local breach details page
     router.push(`/breach/${breachName}`);
   };
 
   return (
-    <Card className="overflow-hidden border-t-4 border-green-600 dark:border-green-500">
-      <CardHeader className="pb-2">
+    <Card 
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="relative overflow-hidden border-t-4 border-green-600 dark:border-green-500 bg-neutral-950 border-neutral-800"
+    >
+      <motion.div
+        className="pointer-events-none absolute -inset-px"
+        animate={controls}
+        initial={{ opacity: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{
+          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(255,255,255,.1), transparent 40%)`,
+        }}
+      />
+      
+      <CardHeader className="pb-2 relative z-10">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
             {breach.image_url && (
@@ -49,8 +76,8 @@ export default function BreachCard({ breach }) {
               </div>
             )}
             <div>
-              <CardTitle className="text-xl">{breach.name}</CardTitle>
-              <CardDescription>Kebocoran Data</CardDescription>
+              <CardTitle className="text-xl text-neutral-100">{breach.name}</CardTitle>
+              <CardDescription className="text-neutral-400">Kebocoran Data</CardDescription>
             </div>
           </div>
           <Badge variant="destructive" className="ml-auto bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600">
@@ -60,10 +87,9 @@ export default function BreachCard({ breach }) {
         </div>
       </CardHeader>
       
-      <CardContent className="pt-4">
+      <CardContent className="pt-4 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {breach.details && Object.entries(breach.details).map(([key, value], idx) => {
-            // Translate keys to Indonesian
             let translatedKey = key;
             if (key.includes("Breached")) {
               translatedKey = key.replace("Breached", "Dibocorkan");
@@ -76,15 +102,15 @@ export default function BreachCard({ breach }) {
             return (
               <div key={idx} className="flex items-start gap-2">
                 {key.includes("Breached") ? (
-                  <Calendar className="h-4 w-4 mt-1 text-muted-foreground" />
+                  <Calendar className="h-4 w-4 mt-1 text-neutral-400" />
                 ) : key.includes("Affected") ? (
-                  <Users className="h-4 w-4 mt-1 text-muted-foreground" />
+                  <Users className="h-4 w-4 mt-1 text-neutral-400" />
                 ) : (
-                  <Lock className="h-4 w-4 mt-1 text-muted-foreground" />
+                  <Lock className="h-4 w-4 mt-1 text-neutral-400" />
                 )}
                 <div>
-                  <p className="text-sm text-muted-foreground">{translatedKey.replace(":", "")}</p>
-                  <p className="font-medium">{value}</p>
+                  <p className="text-sm text-neutral-400">{translatedKey.replace(":", "")}</p>
+                  <p className="font-medium text-neutral-100">{value}</p>
                 </div>
               </div>
             );
@@ -92,7 +118,7 @@ export default function BreachCard({ breach }) {
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-between pt-2">
+      <CardFooter className="flex justify-between pt-2 relative z-10">
         <Button 
           variant="outline" 
           size="sm"
