@@ -2,9 +2,32 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
+
+// Inisialisasi rate limiter
+const rateLimiter = new RateLimiterMemory({
+  points: 5, // Maksimum 5 request
+  duration: 3600, // Dalam 1 jam (3600 detik)
+});
 
 export async function POST(request) {
   try {
+    // Dapatkan IP client
+    const clientIp = request.headers.get('x-forwarded-for') || 'unknown-ip';
+
+    // Periksa rate limit
+    try {
+      await rateLimiter.consume(clientIp);
+    } catch (rateLimiterError) {
+      return NextResponse.json(
+        { 
+          error: "Too many requests. Limit: 5 requests per hour",
+          retryAfter: rateLimiterError.msBeforeNext / 1000 // Dalam detik
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { email } = body;
 
@@ -15,7 +38,6 @@ export async function POST(request) {
       );
     }
 
-    // Configure the request similar to the Python code
     const headers = {
       'Content-Type': 'application/x-www-form-urlencoded',
       'DNT': '1',
@@ -28,42 +50,28 @@ export async function POST(request) {
       'sec-ch-ua-platform': '"Windows"',
     };
 
-    // Convert email to form data format
     const formData = new URLSearchParams();
     formData.append('email', email);
 
-    // Make the request
     const response = await axios.post(
       'https://periksadata.com/',
       formData.toString(),
       { headers }
     );
 
-    // Parse the HTML content using cheerio (similar to BeautifulSoup)
     const $ = cheerio.load(response.data);
-    
-    // Find all breach sections (the div with class "feature feature-5...")
     const breachSections = $('.feature.feature-5.boxed.boxed--lg.boxed--border.feature--featured');
     
-    // Extract breach data
     const breachData = [];
     
     breachSections.each((index, element) => {
-      // Get breach name
       const name = $(element).find('h5').text().trim();
-      
-      // Get image URL
       const imgTag = $(element).find('img');
       const imgUrl = imgTag.attr('src') || null;
       const imgAlt = imgTag.attr('alt') || '';
-      
-      // Get breach details
       const detailsText = $(element).find('.feature__body p').text().trim();
       
-      // Parse the details
       const detailItems = {};
-      
-      // Get all small tags and b tags to extract key-value pairs
       const smallTags = $(element).find('.feature__body p small');
       const bTags = $(element).find('.feature__body p b');
       
@@ -73,11 +81,9 @@ export async function POST(request) {
         detailItems[key] = value;
       });
       
-      // Add link
       const linkTag = $(element).find('a');
       const link = linkTag.attr('href') || null;
       
-      // Create breach entry
       const breachEntry = {
         name,
         image_url: imgUrl,
