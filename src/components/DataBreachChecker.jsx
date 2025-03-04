@@ -15,20 +15,16 @@ export default function DataBreachChecker() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Initialize theme based on system preference or localStorage
   useEffect(() => {
-    // Check local storage first
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       setIsDarkMode(savedTheme === 'dark');
     } else {
-      // Check system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(prefersDark);
     }
   }, []);
 
-  // Apply theme when isDarkMode changes
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -56,7 +52,6 @@ export default function DataBreachChecker() {
     setHasSearched(true);
     
     try {
-      // Call our API route
       const response = await fetch('/api/check-breach', {
         method: 'POST',
         headers: {
@@ -66,7 +61,18 @@ export default function DataBreachChecker() {
       });
       
       if (!response.ok) {
-        throw new Error('Permintaan API gagal');
+        const errorData = await response.json();
+        
+        // Handle rate limit error (status 429)
+        if (response.status === 429) {
+          const retryAfterMinutes = Math.ceil(errorData.retryAfter / 60);
+          toast.error("Terlalu banyak permintaan", {
+            description: `Batas: 5 permintaan per jam. Coba lagi dalam ${retryAfterMinutes} menit.`,
+          });
+          return;
+        }
+        
+        throw new Error(errorData.error || 'Permintaan API gagal');
       }
       
       const data = await response.json();
@@ -85,7 +91,9 @@ export default function DataBreachChecker() {
       }
     } catch (error) {
       toast.error("Error", {
-        description: "Gagal memeriksa kebocoran data. Silakan coba lagi.",
+        description: error.message === 'Failed to check data breach' 
+          ? "Gagal memeriksa kebocoran data. Silakan coba lagi."
+          : error.message,
       });
       console.error(error);
     } finally {
