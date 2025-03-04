@@ -3,6 +3,7 @@
 import DataBreachChecker from '@/components/DataBreachChecker';
 import TypingText from '@/components/ui/TypingText';
 import { HyperText } from "@/components/magicui/hyper-text";
+import { RetroGrid } from '@/components/magicui/retro-grid';
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
           />
         </div>  
       <DataBreachChecker />
+      <RetroGrid/>
     </main>
   );
 }
