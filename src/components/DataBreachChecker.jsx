@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, Moon, Sun } from "lucide-react";
 import BreachCard from '@/components/BreachCard';
+import Spinner from './magicui/spinner';
+import DarkModeToggle from '@/components/ui/DarkModeToggle';
 
 export default function DataBreachChecker() {
   const [email, setEmail] = useState('');
@@ -104,21 +106,7 @@ export default function DataBreachChecker() {
   return (
     <div className="w-full max-w-3xl mx-auto">
       <div className="flex justify-end mb-4">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={toggleTheme} 
-          className="rounded-full"
-        >
-          {isDarkMode ? (
-            <Sun className="h-5 w-5 text-yellow-400" />
-          ) : (
-            <Moon className="h-5 w-5 text-gray-700" />
-          )}
-          <span className="sr-only">
-            {isDarkMode ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
-          </span>
-        </Button>
+        <DarkModeToggle />
       </div>
 
       <Card className="p-6 shadow-lg border-t-4 border-green-600 dark:border-green-500">
@@ -157,7 +145,11 @@ export default function DataBreachChecker() {
           
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-12 w-12 animate-spin text-green-600 dark:text-green-500" />
+              <Spinner
+                childSize="h-6 w-6"
+                className="bg-gradient-to-bl from-black to-blue-400"
+                outerSize="h-8 w-8"
+                />
             </div>
           ) : breachData.length > 0 ? (
             <motion.div 
